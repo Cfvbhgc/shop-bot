@@ -1,0 +1,41 @@
+version: "3.8"
+
+services:
+  bot:
+    build: .
+    container_name: shop_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - bot_network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: shop_bot_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-shop_bot}
+      POSTGRES_USER: ${DB_USER:-bot_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-bot_password}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-bot_user} -d ${DB_NAME:-shop_bot}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - bot_network
+
+volumes:
+  pgdata:
+
+networks:
+  bot_network:
+    driver: bridge
